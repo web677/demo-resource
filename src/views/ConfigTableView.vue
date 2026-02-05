@@ -1,16 +1,23 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Modal, message } from 'ant-design-vue';
 import { APP_OPTIONS } from '../mocks/environmentData';
 import { APP_VERSION_OPTIONS } from '../mocks/appVersionOptions';
 import { useConfigTable } from '../state/configTable';
-import type { IConfigTable } from '../state/configTable';
+import type { IConfigTable, IConfigTableAppVersion } from '../state/configTable';
 import type { IAppVersionOption } from '../mocks/appVersionOptions';
 
 interface IConfigTableEditForm {
   id: string;
   name: string;
   description: string;
+}
+
+type IQuickCreateStrategy = 'blank' | 'copy' | 'majorVersion';
+
+interface ISelectOption {
+  label: string;
+  value: string;
 }
 
 interface IAppVersionRow {
@@ -38,6 +45,10 @@ const createUppercaseId = (length: number): string => {
 const isEditModalOpen = ref(false);
 const editMode = ref<'create' | 'edit'>('create');
 const editForm = ref<IConfigTableEditForm>({ id: '', name: '', description: '' });
+
+const createStrategy = ref<IQuickCreateStrategy>('blank');
+const copySourceConfigTableId = ref<string>('');
+const majorAppVersion = ref<string>('');
 
 const detailOpen = ref(false);
 const detailEditEnabled = ref(false);
@@ -69,9 +80,19 @@ const detailAppRows = computed<IAppVersionRow[]>(() => {
   }));
 });
 
-const openCreateModal = (): void => {
+const copyFromOptions = computed<ISelectOption[]>(() =>
+  configTables.value.map((t) => ({
+    label: `${t.name} (${t.id})`,
+    value: t.id,
+  })),
+);
+
+const openCreateModal = (strategy: IQuickCreateStrategy = 'blank'): void => {
   editMode.value = 'create';
   editForm.value = { id: createUppercaseId(16), name: '', description: '' };
+  createStrategy.value = strategy;
+  copySourceConfigTableId.value = '';
+  majorAppVersion.value = '';
   isEditModalOpen.value = true;
 };
 
@@ -80,6 +101,56 @@ const openEditModal = (table: IConfigTable): void => {
   editForm.value = { id: table.id, name: table.name, description: table.description ?? '' };
   isEditModalOpen.value = true;
 };
+
+const splitBaseVersion = (version: string): string => version.trim().split('-', 1)[0] ?? '';
+
+const parseVersionTuple = (version: string): readonly [number, number, number] => {
+  const [major, minor, patch] = splitBaseVersion(version).split('.', 3);
+  const m = Number(major ?? 0);
+  const n = Number(minor ?? 0);
+  const p = Number(patch ?? 0);
+  return [Number.isFinite(m) ? m : 0, Number.isFinite(n) ? n : 0, Number.isFinite(p) ? p : 0];
+};
+
+const compareVersionTuple = (
+  a: readonly [number, number, number],
+  b: readonly [number, number, number],
+): number => {
+  if (a[0] !== b[0]) return a[0] > b[0] ? 1 : -1;
+  if (a[1] !== b[1]) return a[1] > b[1] ? 1 : -1;
+  if (a[2] !== b[2]) return a[2] > b[2] ? 1 : -1;
+  return 0;
+};
+
+const pickBestAvailableVersion = (target: string, candidates: string[]): string => {
+  const normalizedTarget = target.trim();
+  if (!normalizedTarget) return '';
+  if (candidates.includes(normalizedTarget)) return normalizedTarget;
+  if (candidates.length === 0) return normalizedTarget;
+
+  const targetTuple = parseVersionTuple(normalizedTarget);
+  const scored = candidates.map((v) => ({
+    version: v,
+    tuple: parseVersionTuple(v),
+    hasSuffix: v.includes('-'),
+  }));
+
+  const lessOrEqual = scored.filter((s) => compareVersionTuple(s.tuple, targetTuple) <= 0);
+  const pool = lessOrEqual.length > 0 ? lessOrEqual : scored;
+  pool.sort((a, b) => {
+    const tupleCmp = compareVersionTuple(a.tuple, b.tuple);
+    if (tupleCmp !== 0) return tupleCmp * -1;
+    if (a.hasSuffix !== b.hasSuffix) return a.hasSuffix ? 1 : -1;
+    return a.version === b.version ? 0 : a.version > b.version ? -1 : 1;
+  });
+  return pool[0]?.version ?? normalizedTarget;
+};
+
+const buildAppVersionsByMajor = (targetVersion: string): IConfigTableAppVersion[] =>
+  APP_OPTIONS.map((app) => {
+    const options = (APP_VERSION_OPTIONS[app.value] ?? []).map((o) => o.value);
+    return { appId: app.value, version: pickBestAvailableVersion(targetVersion, options) };
+  });
 
 const getConfigTableById = (id: string): IConfigTable | undefined =>
   configTables.value.find((t) => t.id === id);
@@ -114,19 +185,78 @@ const handleSaveConfigTableMeta = (): void => {
   }
 
   const base = getConfigTableById(id);
+  const copied =
+    editMode.value === 'create' && createStrategy.value === 'copy'
+      ? getConfigTableById(copySourceConfigTableId.value)
+      : undefined;
+  if (editMode.value === 'create' && createStrategy.value === 'copy' && !copied) {
+    message.error('请选择要复制的配置表');
+    return;
+  }
+  if (editMode.value === 'create' && createStrategy.value === 'majorVersion' && !majorAppVersion.value.trim()) {
+    message.error('请输入主要应用版本');
+    return;
+  }
+
   const next: IConfigTable = {
     id,
     name,
     description,
     createdAt: base?.createdAt ?? '',
     updatedAt: base?.updatedAt ?? '',
-    appVersions: base?.appVersions ?? [],
+    appVersions:
+      editMode.value === 'edit'
+        ? base?.appVersions ?? []
+        : createStrategy.value === 'copy'
+          ? (copied?.appVersions ?? []).map((v) => ({ ...v }))
+          : createStrategy.value === 'majorVersion'
+            ? buildAppVersionsByMajor(majorAppVersion.value)
+            : [],
   };
 
   upsertConfigTable(next);
   isEditModalOpen.value = false;
   message.success('保存成功');
 };
+
+watch(
+  () => [editMode.value, createStrategy.value] as const,
+  ([mode, strategy]) => {
+    if (mode !== 'create') return;
+    if (strategy === 'blank') {
+      copySourceConfigTableId.value = '';
+      majorAppVersion.value = '';
+    }
+    if (strategy === 'copy') {
+      majorAppVersion.value = '';
+    }
+    if (strategy === 'majorVersion') {
+      copySourceConfigTableId.value = '';
+    }
+  },
+);
+
+watch(
+  () => copySourceConfigTableId.value,
+  (id) => {
+    if (editMode.value !== 'create' || createStrategy.value !== 'copy') return;
+    if (editForm.value.name.trim()) return;
+    const src = getConfigTableById(id);
+    if (!src) return;
+    editForm.value.name = `${src.name}（复制）`;
+  },
+);
+
+watch(
+  () => majorAppVersion.value,
+  (v) => {
+    if (editMode.value !== 'create' || createStrategy.value !== 'majorVersion') return;
+    if (editForm.value.name.trim()) return;
+    const ver = v.trim();
+    if (!ver) return;
+    editForm.value.name = ver === '4.2.2' ? '4.2.2-独墅湖' : `${ver}-产品化`;
+  },
+);
 
 const handleRemoveConfigTable = (table: IConfigTable): void => {
   Modal.confirm({
@@ -144,7 +274,12 @@ const handleRemoveConfigTable = (table: IConfigTable): void => {
 const handleVersionUpdate = (appId: string, version: string): void => {
   const tableId = detailConfigTableId.value;
   if (!tableId) return;
-  setAppVersion({ configTableId: tableId, appId, version: version.trim() });
+  const next = version.trim();
+  if (!next) {
+    message.error('应用版本不能为空');
+    return;
+  }
+  setAppVersion({ configTableId: tableId, appId, version: next });
 };
 </script>
 
@@ -159,7 +294,10 @@ const handleVersionUpdate = (appId: string, version: string): void => {
 
     <a-card title="配置表列表" class="mb-4" :bordered="true">
       <div class="flex items-center justify-between mb-3">
-        <a-button type="primary" @click="openCreateModal">新建配置表</a-button>
+        <a-space>
+          <a-button type="primary" @click="() => openCreateModal('blank')">新建配置表</a-button>
+          <a-button @click="() => openCreateModal('majorVersion')">快速创建</a-button>
+        </a-space>
       </div>
       <a-table :dataSource="configTableRows" :pagination="false" rowKey="id" size="small" bordered>
         <a-table-column title="ID" dataIndex="id" key="id" />
@@ -219,9 +357,32 @@ const handleVersionUpdate = (appId: string, version: string): void => {
         <a-form-item label="配置表 ID" required>
           <a-space class="w-full">
             <a-input v-model:value="editForm.id" placeholder="系统自动生成" :disabled="true" />
-            <a-button v-if="editMode === 'create'" @click="editForm.id = createUppercaseId(16)">重新生成</a-button>
+            <!-- <a-button v-if="editMode === 'create'" @click="editForm.id = createUppercaseId(16)">重新生成</a-button> -->
           </a-space>
         </a-form-item>
+
+        <a-form-item v-if="editMode === 'create'" label="创建方式" required>
+          <a-radio-group v-model:value="createStrategy">
+            <a-radio value="blank">空白配置</a-radio>
+            <a-radio value="copy">复制已有配置表</a-radio>
+            <a-radio value="majorVersion">指定主要应用版本</a-radio>
+          </a-radio-group>
+        </a-form-item>
+
+        <a-form-item v-if="editMode === 'create' && createStrategy === 'copy'" label="复制来源" required>
+          <a-select
+            v-model:value="copySourceConfigTableId"
+            :options="copyFromOptions"
+            placeholder="请选择要复制的配置表"
+            show-search
+            option-filter-prop="label"
+          />
+        </a-form-item>
+
+        <a-form-item v-if="editMode === 'create' && createStrategy === 'majorVersion'" label="主要应用版本" required>
+          <a-input v-model:value="majorAppVersion" placeholder="例如：4.4.1" />
+        </a-form-item>
+
         <a-form-item label="配置表名称" required>
           <a-input v-model:value="editForm.name" placeholder="例如：配置表 4.2.1（生产）" />
         </a-form-item>
