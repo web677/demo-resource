@@ -254,7 +254,7 @@ watch(
     if (editForm.value.name.trim()) return;
     const ver = v.trim();
     if (!ver) return;
-    editForm.value.name = ver === '4.2.2' ? '4.2.2-独墅湖' : `${ver}-产品化`;
+    editForm.value.name = `配置表 ${ver}`;
   },
 );
 
@@ -274,12 +274,7 @@ const handleRemoveConfigTable = (table: IConfigTable): void => {
 const handleVersionUpdate = (appId: string, version: string): void => {
   const tableId = detailConfigTableId.value;
   if (!tableId) return;
-  const next = version.trim();
-  if (!next) {
-    message.error('应用版本不能为空');
-    return;
-  }
-  setAppVersion({ configTableId: tableId, appId, version: next });
+  setAppVersion({ configTableId: tableId, appId, version: version.trim() });
 };
 </script>
 

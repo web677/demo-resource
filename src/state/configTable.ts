@@ -1,6 +1,5 @@
 import { computed, ref } from 'vue';
 import { APP_OPTIONS, CONFIG_VERSIONS } from '../mocks/environmentData';
-import { APP_VERSION_OPTIONS } from '../mocks/appVersionOptions';
 
 export interface IConfigTableAppVersion {
   appId: string;
@@ -46,16 +45,9 @@ const normalizeConfigTable = (table: IConfigTable): IConfigTable => {
     table.appVersions.map((v) => [v.appId, v]),
   );
 
-  const getDefaultVersionByAppId = (appId: string): string => {
-    const options = APP_VERSION_OPTIONS[appId] ?? [];
-    const first = options[0]?.value ?? '';
-    return first.trim() ? first : '4.0.0';
-  };
-
   const normalized: IConfigTableAppVersion[] = appIds.map((appId) => {
     const hit = existing.get(appId);
-    const version = hit?.version?.trim() ?? '';
-    return { appId, version: version ? version : getDefaultVersionByAppId(appId) };
+    return hit ? { ...hit } : { appId, version: '' };
   });
 
   const createdAt = table.createdAt || nowString();
