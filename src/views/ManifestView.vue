@@ -1,32 +1,21 @@
 <script setup lang="ts">
 import { ref, computed, reactive, watch } from "vue";
-import { message } from "ant-design-vue";
-import { Pencil, Check, X, Filter, Trash2, RefreshCw } from 'lucide-vue-next';
+import { Pencil, Check, X, Filter } from 'lucide-vue-next';
 import type { ICapabilityRow, IManifestAppRow } from '../lib/resourceTransform';
-import { useEnvironment, ENVIRONMENT_OPTIONS } from '../state/environment.ts';
+import type { IEnvironmentKey } from '../state/environment';
+import { ENVIRONMENT_OPTIONS } from '../state/environment.ts';
+import { useConfigTable } from '../state/configTable';
 import { getManifestDataByEnvironment } from '../mocks/environmentData';
-
-const handleSync = (appName: string) => {
-    message.success(`已触发 ${appName} 的同步任务`);
-};
 
 const columnsManifest = [
     { title: "子应用 ID", dataIndex: "appName" },
     { title: "当前版本号", dataIndex: "version" },
-    { title: "构建时间", dataIndex: "buildTime" },
+    { title: "首次构建时间", dataIndex: "firstBuildTime" },
+    { title: "更新时间", dataIndex: "updatedTime" },
     {
         title: "Manifest 状态",
         dataIndex: "status",
         customRender: (info: { text?: string }) => info.text || "已解析",
-    },
-    {
-        title: "同步状态",
-        dataIndex: "sync",
-        customRender: (info: { text?: string }) => info.text || "已同步",
-    },
-    {
-        title: "同步到能力列表",
-        dataIndex: "syncToCap",
     },
 ];
 
@@ -36,11 +25,11 @@ const columnsCap = [
     { title: "描述", dataIndex: "desc" },
     { title: "来源子应用", dataIndex: "source", width: "150px" },
     { title: "类型", dataIndex: "type", width: "100px" },
-    { title: "支持版本", dataIndex: "versions", width: "120px" },
+    // { title: "支持版本", dataIndex: "versions", width: "120px" },
     { title: "操作", dataIndex: "action", width: "100px", fixed: "right" },
 ];
 
-const { environment, setEnvironment } = useEnvironment();
+const { configTables } = useConfigTable();
 
 const appList = ref<IManifestAppRow[]>([]);
 const capabilities = ref<ICapabilityRow[]>([]);
@@ -49,34 +38,34 @@ const capabilities = ref<ICapabilityRow[]>([]);
 const filters = reactive({
     app: undefined as string | undefined,
     version: undefined as string | undefined,
-    env: undefined as string | undefined,
+    configTableId: undefined as string | undefined,
     type: undefined as string | undefined,
 });
 
-// Watch logic for mutual exclusion
-watch(
-    () => filters.version,
-    (newVal) => {
-        if (newVal) {
-            filters.env = undefined;
-        }
-    }
+const configTableOptions = computed(() =>
+    configTables.value.map((t) => ({ value: t.id, label: t.name })),
 );
 
+const resolveEnvKeyByConfigTableId = (configTableId: string | undefined): IEnvironmentKey => {
+    const pool = ENVIRONMENT_OPTIONS.map((o) => o.value);
+    const index = configTableId
+        ? Math.max(0, configTables.value.findIndex((t) => t.id === configTableId))
+        : 0;
+    return pool[index % pool.length] ?? pool[0] ?? "21";
+};
+
+const buildConfigTableVersionMap = (configTableId: string | undefined): Map<string, string> => {
+    if (!configTableId) return new Map<string, string>();
+    const table = configTables.value.find((t) => t.id === configTableId);
+    if (!table) return new Map<string, string>();
+    return new Map<string, string>(table.appVersions.map((v) => [v.appId, v.version]));
+};
+
 watch(
-    () => filters.env,
+    () => filters.configTableId,
     (newVal) => {
-        if (newVal) {
-            filters.version = undefined;
-            // Update the global environment state when filter changes,
-            // but type assertion is needed because filters.env can be undefined,
-            // and setEnvironment expects IEnvironmentKey.
-            // However, we only call this if newVal is truthy.
-            // We should check if it's a valid environment key or just cast it.
-            // Since options come from ENVIRONMENT_OPTIONS, it should be safe.
-             setEnvironment(newVal as any);
-        }
-    }
+        if (newVal) filters.version = undefined;
+    },
 );
 
 
@@ -273,18 +262,22 @@ const resetEditableData = (target: Record<string, ICapabilityRow>) => {
 };
 
 const loadByEnvironment = () => {
-    const data = getManifestDataByEnvironment(environment.value);
-    appList.value = data.appList;
-    capabilities.value = data.capabilities;
+    const envKey = resolveEnvKeyByConfigTableId(filters.configTableId);
+    const data = getManifestDataByEnvironment(envKey);
+    const versionMap = buildConfigTableVersionMap(filters.configTableId);
+
+    appList.value = data.appList.map((app) => ({
+        ...app,
+        version: versionMap.get(app.appName) ?? app.version,
+    }));
+    capabilities.value = data.capabilities.map((cap) => {
+        const version = versionMap.get(cap.source);
+        if (!version) return cap;
+        return { ...cap, versions: [version] };
+    });
 
     filters.app = undefined;
     filters.type = undefined;
-    // Do not reset filters.env here as it might trigger the load
-    // If filters.env matches current environment, keep it.
-    // If we loaded initially, sync filters.env with current environment
-    if (filters.env !== environment.value) {
-         filters.env = environment.value;
-    }
 
     resetEditableData(editableData);
     diffOpen.value = false;
@@ -295,7 +288,7 @@ const loadByEnvironment = () => {
 };
 
 loadByEnvironment();
-watch(environment, loadByEnvironment);
+watch(() => filters.configTableId, loadByEnvironment);
 </script>
 
 <template>
@@ -316,15 +309,7 @@ watch(environment, loadByEnvironment);
                     bordered
                     size="small"
                     rowKey="appName"
-                >
-                    <template #bodyCell="{ column, record }">
-                        <template v-if="column.dataIndex === 'syncToCap'">
-                            <a-button type="link" size="small" @click="handleSync(record.appName)">
-                                手动同步
-                            </a-button>
-                        </template>
-                    </template>
-                </a-table>
+                />
             </div>
         </div>
 
@@ -366,11 +351,11 @@ watch(environment, loadByEnvironment);
                 />
 
                 <a-select
-                    v-model:value="filters.env"
-                    placeholder="选择环境"
-                    style="width: 120px"
+                    v-model:value="filters.configTableId"
+                    placeholder="选择配置表"
+                    style="width: 220px"
                     allowClear
-                    :options="ENVIRONMENT_OPTIONS"
+                    :options="configTableOptions"
                 />
 
                 <a-select

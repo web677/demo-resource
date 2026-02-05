@@ -83,7 +83,8 @@ export const getManifestDataByEnvironment = (
     const baseApps = buildManifestAppsFromResources(resources).map((app) => ({
         ...app,
         version: pickVersion(seed, 3),
-        buildTime: `2026-01-${String(Math.min(seed + 1, 28)).padStart(2, "0")} 10:00`,
+        firstBuildTime: `2026-01-${String(Math.min(seed + 1, 28)).padStart(2, "0")} 10:00`,
+        updatedTime: `2026-02-${String(Math.min(seed + 1, 28)).padStart(2, "0")} 18:00`,
     }));
 
     const extraApps: IManifestAppRow[] = [
@@ -91,33 +92,33 @@ export const getManifestDataByEnvironment = (
             appName: "AppMall",
             description: "商城应用",
             version: pickVersion(seed, 5),
-            buildTime: "2026-02-01 12:00",
+            firstBuildTime: "2026-01-08 12:00",
+            updatedTime: "2026-02-01 12:00",
             status: "已解析",
-            sync: "已同步",
         },
         {
             appName: "AppCommerce",
             description: "商务应用",
             version: pickVersion(seed, 4),
-            buildTime: "2026-02-02 09:30",
+            firstBuildTime: "2026-01-10 09:30",
+            updatedTime: "2026-02-02 09:30",
             status: "已解析",
-            sync: "已同步",
         },
         {
             appName: "AppHvac",
             description: "暖通空调",
             version: pickVersion(seed, 1),
-            buildTime: "2026-01-15 14:20",
+            firstBuildTime: "2026-01-15 14:20",
+            updatedTime: "2026-02-03 11:10",
             status: "已解析",
-            sync: "已同步",
         },
         {
             appName: "AppMetting",
             description: "会议系统",
             version: pickVersion(seed, 0),
-            buildTime: "2026-01-20 16:45",
+            firstBuildTime: "2026-01-20 16:45",
+            updatedTime: "2026-02-04 08:15",
             status: "已解析",
-            sync: "已同步",
         },
     ];
 

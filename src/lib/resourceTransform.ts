@@ -16,9 +16,9 @@ export interface IManifestAppRow {
   appName: string;
   description: string;
   version: string;
-  buildTime: string;
+  firstBuildTime: string;
+  updatedTime: string;
   status?: string;
-  sync?: string;
 }
 
 export interface IPermissionTreeNode {
@@ -75,9 +75,9 @@ export const buildManifestAppsFromResources = (
       appName,
       description: definition.app?.appName || '-',
       version: '3.7.4',
-      buildTime: '2026-01-01 10:00',
+      firstBuildTime: '2026-01-01 10:00',
+      updatedTime: '2026-02-01 10:00',
       status: '已解析',
-      sync: '已同步',
     },
   ];
 };
