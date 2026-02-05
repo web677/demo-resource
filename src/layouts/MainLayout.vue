@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue';
+import { computed, ref, watchEffect } from 'vue';
+import type { Component } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { 
   Code, 
@@ -11,6 +12,7 @@ import {
 } from 'lucide-vue-next';
 import ResourceView from '../views/ResourceView.vue';
 import ProcessView from '../views/ProcessView.vue';
+import { useConfigTable } from '../state/configTable';
 
 const collapsed = ref(false);
 const selectedKeys = ref<string[]>([]);
@@ -21,28 +23,72 @@ const docOpen = ref(false);
 const docType = ref<IDocType>('resource');
 
 watchEffect(() => {
-  selectedKeys.value = [route.path];
+  selectedKeys.value = [route.fullPath];
 });
 
-const menuItems = [
+type ITopNavKey = 'capability' | 'config';
+
+const { activeConfigTableId, configTables } = useConfigTable();
+
+const topNavKey = ref<ITopNavKey>('capability');
+
+const inferTopNavFromRoute = (path: string): ITopNavKey => {
+  if (path.startsWith('/manifest') || path.startsWith('/resource') || path.startsWith('/process')) return 'capability';
+  return 'config';
+};
+
+watchEffect(() => {
+  topNavKey.value = inferTopNavFromRoute(route.path);
+});
+
+const configTableOptions = computed(() =>
+  configTables.value.map((t) => ({ label: t.name, value: t.id })),
+);
+
+interface IMenuChildItem {
+  key: string;
+  label: string;
+}
+
+interface IMenuItem {
+  key: string;
+  label: string;
+  icon?: Component;
+  children?: IMenuChildItem[];
+}
+
+const capabilityMenuItems: IMenuItem[] = [
   { key: '/manifest', icon: Database, label: '能力管理 (Manifest & Diff)' },
-  { key: '/permission', icon: ShieldCheck, label: '权限管理' },
-  { 
-    key: '/menu', 
-    icon: MenuIcon, 
+];
+
+const configMenuItems: IMenuItem[] = [
+//   { key: '/permission', icon: ShieldCheck, label: '权限管理' },
+  { key: '/config-table', icon: Database, label: '配置表' },
+  { key: '/business', icon: MenuIcon, label: '业态管理' },
+  { key: '/module', icon: MenuIcon, label: '功能模块' },
+  {
+    key: '/menu',
+    icon: MenuIcon,
     label: '菜单管理',
     children: [
-        { key: '/menu?type=business', label: '业态菜单' },
-        { key: '/menu?type=app', label: '应用菜单' },
-        { key: '/menu?type=tenant', label: '租户菜单' },
-        { key: '/menu?type=admin', label: '超管菜单' },
-    ]
+      { key: '/menu?type=project', label: '项目菜单' },
+      { key: '/menu?type=app', label: '应用菜单' },
+    //   { key: '/menu?type=tenant', label: '租户菜单' },
+    ],
   },
   { key: '/dependency', icon: Network, label: '服务依赖管理' },
 ];
 
+const menuItems = computed<IMenuItem[]>(() => (topNavKey.value === 'capability' ? capabilityMenuItems : configMenuItems));
+
 const handleMenuClick = ({ key }: { key: string }) => {
   router.push(key);
+};
+
+const handleTopNavClick = ({ key }: { key: string }): void => {
+  const next = key === 'config' ? 'config' : 'capability';
+  topNavKey.value = next;
+  router.push(next === 'capability' ? '/manifest' : '/config-table');
 };
 
 const openDoc = (type: IDocType) => {
@@ -79,18 +125,39 @@ const openDoc = (type: IDocType) => {
       </a-menu>
     </a-layout-sider>
     <a-layout>
-      <a-layout-header style="background: #fff; padding: 0 16px; display: flex; align-items: center;">
-        <h2 class="text-xl font-semibold m-0">前端微前端治理方案 Demo</h2>
+      <a-layout-header style="background: #001529; padding: 0 16px; display: flex; align-items: center;">
+        <h2 class="text-xl font-semibold m-0 text-white">前端微前端治理方案 Demo</h2>
+        <div style="margin-left: 16px; flex: 1;">
+          <a-menu
+            mode="horizontal"
+            theme="dark"
+            :selectedKeys="[topNavKey]"
+            style="background: transparent"
+            @click="handleTopNavClick"
+          >
+            <a-menu-item key="capability">能力管理</a-menu-item>
+            <a-menu-item key="config">配置中心</a-menu-item>
+          </a-menu>
+        </div>
         <div style="margin-left: auto; display: flex; align-items: center; gap: 12px;">
+          <div v-if="topNavKey === 'config'" style="display: flex; align-items: center; gap: 8px;">
+            <span class="text-white opacity-90">配置表</span>
+            <a-select
+              v-model:value="activeConfigTableId"
+              style="width: 260px"
+              :options="configTableOptions"
+              placeholder="请选择配置表"
+            />
+          </div>
           <a-tooltip title="Resource 声明示意">
-            <a-button type="text" @click="openDoc('resource')">
+            <a-button type="text" style="color: #fff" @click="openDoc('resource')">
               <template #icon>
                 <Code class="anticon" style="margin-right: 0" />
               </template>
             </a-button>
           </a-tooltip>
           <a-tooltip title="整体流程示意">
-            <a-button type="text" @click="openDoc('process')">
+            <a-button type="text" style="color: #fff" @click="openDoc('process')">
               <template #icon>
                 <Workflow class="anticon" style="margin-right: 0" />
               </template>

@@ -33,6 +33,22 @@ const getEnvIndex = (env: IEnvironmentKey): number => {
 
 const cloneJson = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
+const APP_VERSION_POOL = [
+    "4.0.0",
+    "4.1.0",
+    "4.2.0",
+    "4.2.4",
+    "4.2.4-dsh",
+    "4.3.0",
+    "4.3.4",
+    "4.4.0",
+];
+
+const pickVersion = (seed: number, offset: number): string => {
+    const idx = (seed + offset) % APP_VERSION_POOL.length;
+    return APP_VERSION_POOL[idx];
+};
+
 const applyEnvToCapabilities = (
     base: ICapabilityRow[],
     env: IEnvironmentKey,
@@ -50,7 +66,10 @@ const applyEnvToCapabilities = (
         const row = rows[i];
         const pick = statuses[(seed + i) % statuses.length];
         if ((seed + i) % 3 === 0) row.status = pick;
-        row.versions = seed % 2 === 0 ? ["v1.0.0"] : ["v1.0.0", "v0.9.0"];
+        row.versions =
+            seed % 2 === 0
+                ? [pickVersion(seed, 2)]
+                : [pickVersion(seed, 2), pickVersion(seed, 1)];
     }
 
     return rows;
@@ -63,7 +82,7 @@ export const getManifestDataByEnvironment = (
 
     const baseApps = buildManifestAppsFromResources(resources).map((app) => ({
         ...app,
-        version: `1.${seed}.0`,
+        version: pickVersion(seed, 3),
         buildTime: `2026-01-${String(Math.min(seed + 1, 28)).padStart(2, "0")} 10:00`,
     }));
 
@@ -71,7 +90,7 @@ export const getManifestDataByEnvironment = (
         {
             appName: "AppMall",
             description: "商城应用",
-            version: `2.${seed}.0`,
+            version: pickVersion(seed, 5),
             buildTime: "2026-02-01 12:00",
             status: "已解析",
             sync: "已同步",
@@ -79,7 +98,7 @@ export const getManifestDataByEnvironment = (
         {
             appName: "AppCommerce",
             description: "商务应用",
-            version: `1.${seed + 2}.0`,
+            version: pickVersion(seed, 4),
             buildTime: "2026-02-02 09:30",
             status: "已解析",
             sync: "已同步",
@@ -87,7 +106,7 @@ export const getManifestDataByEnvironment = (
         {
             appName: "AppHvac",
             description: "暖通空调",
-            version: `3.0.${seed}`,
+            version: pickVersion(seed, 1),
             buildTime: "2026-01-15 14:20",
             status: "已解析",
             sync: "已同步",
@@ -95,7 +114,7 @@ export const getManifestDataByEnvironment = (
         {
             appName: "AppMetting",
             description: "会议系统",
-            version: `1.1.${seed}`,
+            version: pickVersion(seed, 0),
             buildTime: "2026-01-20 16:45",
             status: "已解析",
             sync: "已同步",
@@ -116,7 +135,7 @@ export const getManifestDataByEnvironment = (
             desc: "展示商品信息",
             source: "AppMall",
             type: "Page",
-            versions: ["v2.0.0"],
+            versions: [pickVersion(seed, 5)],
             status: "normal",
         },
         {
@@ -125,7 +144,7 @@ export const getManifestDataByEnvironment = (
             desc: "新增商品",
             source: "AppMall",
             type: "Action",
-            versions: ["v2.0.0"],
+            versions: [pickVersion(seed, 5)],
             status: "new",
         },
         {
@@ -134,7 +153,7 @@ export const getManifestDataByEnvironment = (
             desc: "处理订单",
             source: "AppCommerce",
             type: "Page",
-            versions: ["v1.2.0"],
+            versions: [pickVersion(seed, 4)],
             status: "normal",
         },
         {
@@ -143,7 +162,7 @@ export const getManifestDataByEnvironment = (
             desc: "空调控制",
             source: "AppHvac",
             type: "Page",
-            versions: ["v3.0.0"],
+            versions: [pickVersion(seed, 1)],
             status: "changed",
         },
         {
@@ -152,7 +171,7 @@ export const getManifestDataByEnvironment = (
             desc: "预定会议室",
             source: "AppMetting",
             type: "Page",
-            versions: ["v1.1.0"],
+            versions: [pickVersion(seed, 0)],
             status: "normal",
         },
         {
@@ -161,7 +180,7 @@ export const getManifestDataByEnvironment = (
             desc: "取消已预定的会议",
             source: "AppMetting",
             type: "Action",
-            versions: ["v1.1.0"],
+            versions: [pickVersion(seed, 0)],
             status: "deprecated",
         },
     ];
@@ -219,41 +238,62 @@ export const APP_OPTIONS: IAppOption[] = [
     { label: '票务应用 (AppCommerce)', value: 'AppCommerce' },
 ];
 
-export type IMenuCategory = "business" | "tenant" | "admin" | "app";
+export type IMenuCategory = "project" | "tenant" | "app";
 
 export interface IConfigVersion {
     id: string;
     name: string;
+    description: string;
+    createdAt: string;
+    updatedAt: string;
     dependencies: { appId: string; version: string }[];
 }
 
 export const CONFIG_VERSIONS: IConfigVersion[] = [
     {
-        id: 'v1.0',
-        name: 'v1.0.0 (生产环境)',
+        id: 'cfg-4.2.1',
+        name: '配置表 4.2.1（生产）',
+        description: '生产主线配置表（用于线上环境切换）',
+        createdAt: '2026-01-05 10:00:00',
+        updatedAt: '2026-02-01 10:00:00',
         dependencies: [
-            { appId: 'AppAi', version: 'v1.2.0' },
-            { appId: 'AppMall', version: 'v2.0.0' },
-            { appId: 'AppCommerce', version: 'v1.0.0' },
+            { appId: 'AppAi', version: '4.3.4' },
+            { appId: 'AppMall', version: '4.4.0' },
+            { appId: 'AppCommerce', version: '4.2.4-dsh' },
         ]
     },
     {
-        id: 'v1.1',
-        name: 'v1.1.0 (测试环境)',
+        id: 'cfg-4.3.2',
+        name: '配置表 4.3.2（测试）',
+        description: '测试验证配置表（用于联调/回归）',
+        createdAt: '2026-01-10 15:20:00',
+        updatedAt: '2026-02-02 09:30:00',
         dependencies: [
-            { appId: 'AppAi', version: 'v1.3.0-beta' },
-            { appId: 'AppMall', version: 'v2.1.0-alpha' },
-            { appId: 'AppCommerce', version: 'v1.0.0' },
+            { appId: 'AppAi', version: '4.2.4' },
+            { appId: 'AppMall', version: '4.3.0' },
+            { appId: 'AppCommerce', version: '4.2.0' },
         ]
-    }
+    },
+    {
+        id: 'cfg-4.4.1',
+        name: '配置表 4.4.1（预发）',
+        description: '预发灰度配置表（用于版本验证）',
+        createdAt: '2026-01-20 09:00:00',
+        updatedAt: '2026-02-03 14:10:00',
+        dependencies: [
+            { appId: 'AppAi', version: '4.4.0' },
+            { appId: 'AppMall', version: '4.3.4' },
+            { appId: 'AppCommerce', version: '4.3.4' },
+        ]
+    },
 ];
 
 export const getMenuDataByEnvironment = (
     env: IEnvironmentKey,
-    category: IMenuCategory = "business",
+    category: IMenuCategory = "project",
     businessId: string = "edge-gateway",
     appId: string = "AppAi",
-    configVersion: string = "v1.0"
+    configVersion: string = "cfg-4.2.1"
 ): { treeData: IMenuTreeNode[] } => {
     const seed = getEnvIndex(env);
     let treeData: IMenuTreeNode[] = [];
@@ -261,40 +301,32 @@ export const getMenuDataByEnvironment = (
     // Simulate config version impact (just appending version string to titles for demo)
     const versionSuffix = configVersion === 'v1.0' ? '' : ` (${configVersion})`;
 
-    // Simple mock logic to differentiate business types
-    const businessPrefix =
-        businessId === "edge-gateway"
-            ? "[运维服务]"
-            : businessId === "basic-service"
-              ? "[基础服务]"
-              : "[运营服务]";
-
-    if (category === "business") {
+    if (category === "project") {
         treeData = [
             {
-                title: `${businessPrefix}${versionSuffix}`,
-                key: "business-overview",
+                title: `项目工作台${versionSuffix}`,
+                key: "project-dashboard",
                 type: "page",
-                capability: { capabilityKey: "business.overview" },
+                capability: { capabilityKey: "project.dashboard" },
                 status: "normal",
             },
             {
-                title: "客户服务",
-                key: "business-settings",
+                title: "基础配置",
+                key: "project-settings",
                 type: "menu",
                 children: [
                     {
-                        title: "基本信息",
-                        key: "business-info",
+                        title: "组织管理",
+                        key: "project-org",
                         type: "page",
-                        capability: { capabilityKey: "business.info" },
+                        capability: { capabilityKey: "project.org" },
                         status: "normal",
                     },
                     {
-                        title: "成员管理",
-                        key: "business-members",
+                        title: "用户管理",
+                        key: "project-user",
                         type: "page",
-                        capability: { capabilityKey: "business.members" },
+                        capability: { capabilityKey: "project.user" },
                         status: "normal",
                     },
                 ],
@@ -329,37 +361,6 @@ export const getMenuDataByEnvironment = (
                 type: "page",
                 capability: { capabilityKey: "tenant.org" },
                 status: "normal",
-            },
-        ];
-    } else if (category === "admin") {
-        treeData = [
-            {
-                title: `系统管理${versionSuffix}`,
-                key: "sys-admin",
-                type: "menu",
-                children: [
-                    {
-                        title: "系统配置",
-                        key: "sys-config",
-                        type: "page",
-                        capability: { capabilityKey: "sys.config" },
-                        status: "normal",
-                    },
-                    {
-                        title: "日志监控",
-                        key: "sys-log",
-                        type: "page",
-                        capability: { capabilityKey: "sys.log" },
-                        status: "normal",
-                    },
-                    {
-                        title: "插件管理",
-                        key: "sys-plugins",
-                        type: "page",
-                        capability: { capabilityKey: "sys.plugins" },
-                        status: "normal",
-                    },
-                ],
             },
         ];
     } else {

@@ -1,4 +1,4 @@
-import type { INimbusResourcesDefinition } from 'nimbus-core-sdk/manifest';
+import type { IResourcesDefinition } from '../types/resources';
 
 export type ICapabilityStatus = 'normal' | 'new' | 'changed' | 'deprecated' | 'deleted';
 
@@ -52,27 +52,29 @@ const toTitle = (value: string): string => {
 };
 
 const buildActionName = (actionKey: string): string => {
-  const last = actionKey.split('.').filter(Boolean).at(-1) ?? actionKey;
+  const parts = actionKey.split('.').filter(Boolean);
+  const last = parts.length > 0 ? parts[parts.length - 1] : actionKey;
   return toTitle(last);
 };
 
 const buildPageName = (pageTitle: string | undefined, capabilityKey: string): string => {
   if (pageTitle && pageTitle.trim()) return pageTitle.trim();
-  const last = capabilityKey.split('.').filter(Boolean).at(-1) ?? capabilityKey;
+  const parts = capabilityKey.split('.').filter(Boolean);
+  const last = parts.length > 0 ? parts[parts.length - 1] : capabilityKey;
   return toTitle(last);
 };
 
 const buildPageDesc = (pageDesc: string | undefined): string => pageDesc?.trim() || '-';
 
 export const buildManifestAppsFromResources = (
-  definition: INimbusResourcesDefinition
+  definition: IResourcesDefinition
 ): IManifestAppRow[] => {
   const appName = definition.app?.wujieName || definition.app?.appName || definition.app?.appId || 'UnknownApp';
   return [
     {
       appName,
       description: definition.app?.appName || '-',
-      version: '1.0.0',
+      version: '3.7.4',
       buildTime: '2026-01-01 10:00',
       status: '已解析',
       sync: '已同步',
@@ -81,7 +83,7 @@ export const buildManifestAppsFromResources = (
 };
 
 export const buildCapabilitiesFromResources = (
-  definition: INimbusResourcesDefinition
+  definition: IResourcesDefinition
 ): ICapabilityRow[] => {
   const source = definition.app?.wujieName || definition.app?.appName || definition.app?.appId || 'UnknownApp';
   const pages = definition.pages ?? [];
@@ -92,13 +94,13 @@ export const buildCapabilitiesFromResources = (
     desc: buildPageDesc(page.description),
     source,
     type: 'Page',
-    versions: ['v1.0.0'],
+    versions: ['v3.7.4'],
     status: 'normal',
   }));
 };
 
 export const buildPermissionTreeFromResources = (
-  definition: INimbusResourcesDefinition
+  definition: IResourcesDefinition
 ): IPermissionTreeNode[] => {
   const source = definition.app?.wujieName || definition.app?.appName || definition.app?.appId || 'UnknownApp';
   const pages = definition.pages ?? [];
@@ -122,7 +124,7 @@ export const buildPermissionTreeFromResources = (
 };
 
 export const buildMenuTreeFromResources = (
-  definition: INimbusResourcesDefinition
+  definition: IResourcesDefinition
 ): IMenuTreeNode[] => {
   const pages = definition.pages ?? [];
 

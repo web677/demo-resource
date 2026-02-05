@@ -161,21 +161,21 @@ interface ISnapshotItem {
 }
 
 const VERSIONS: IVersionOption[] = [
-    { value: 'v1.0.0', label: 'v1.0.0 (Current)' },
-    { value: 'v0.9.0', label: 'v0.9.0 (2025-12-01)' },
-    { value: 'v0.8.0', label: 'v0.8.0 (2025-10-15)' },
+    { value: 'v4.0.0', label: 'v4.0.0 (Current)' },
+    { value: 'v4.3.4', label: 'v4.3.4 (2025-12-01)' },
+    { value: 'v4.4.1', label: 'v4.4.1 (2025-10-15)' },
 ];
 
 const SNAPSHOT_DATA: Record<string, ISnapshotItem[]> = {
-    'v1.0.0': [
+    'v4.0.0': [
         { key: 'ai.knowledge.graph', routePath: '/ai/knowledge-graph', type: 'Page', app: 'AppAi' },
         { key: 'ai.knowledge.library.manage', routePath: '/ai/knowledge-library', type: 'Page', app: 'AppAi' },
     ],
-    'v0.9.0': [
+    'v4.3.4': [
         { key: 'ai.knowledge.graph', routePath: '/ai/kg', type: 'Page', app: 'AppAi' },
         { key: 'ai.question.library.manage', routePath: '/ai/question-library', type: 'Page', app: 'AppAi' },
     ],
-    'v0.8.0': [
+    'v4.4.1': [
         { key: 'ai.knowledge.library.manage', routePath: '/ai/knowledge-library', type: 'Page', app: 'AppAi' },
     ],
 };

@@ -6,16 +6,22 @@ import PermissionView from '../views/PermissionView.vue';
 import MenuView from '../views/MenuView.vue';
 import DependencyView from '../views/DependencyView.vue';
 import ProcessView from '../views/ProcessView.vue';
+import ConfigTableView from '../views/ConfigTableView.vue';
+import BusinessManagementView from '../views/BusinessManagementView.vue';
+import ModuleManagementView from '../views/ModuleManagementView.vue';
 
 const routes = [
   {
     path: '/',
     component: MainLayout,
-    redirect: '/resource',
+    redirect: '/manifest',
     children: [
       { path: 'resource', component: ResourceView },
       { path: 'manifest', component: ManifestView },
       { path: 'permission', component: PermissionView },
+      { path: 'config-table', component: ConfigTableView },
+      { path: 'business', component: BusinessManagementView },
+      { path: 'module', component: ModuleManagementView },
       { path: 'menu', component: MenuView },
       { path: 'dependency', component: DependencyView },
       { path: 'process', component: ProcessView },

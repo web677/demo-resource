@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { DEPENDENCY_MAP, APP_LIST } from "../constants/mockData";
+import { useConfigTable } from "../state/configTable";
 
 const currentApp = ref<string | undefined>(undefined);
 const filterType = ref("all"); // 'all', 'frontend', 'backend'
@@ -47,12 +48,7 @@ const canvasSize = computed(() => {
 
 const columns = [
     { title: "Service ID", dataIndex: "id" },
-    {
-        title: "Category",
-        dataIndex: "category",
-        customRender: ({ text }: any) =>
-            text === "frontend" ? "前端依赖" : "后端服务",
-    },
+    { title: "Category", dataIndex: "category" },
     { title: "Version", dataIndex: "version" },
     { title: "Type", dataIndex: "type" },
     { title: "Status", dataIndex: "status" },
@@ -63,6 +59,16 @@ const appOptions = APP_LIST.map((app) => ({
     value: app.appName,
     label: app.appName,
 }));
+
+const { activeConfigTable, getVersionByAppId } = useConfigTable();
+
+const currentAppVersion = computed(() => {
+    if (!currentApp.value) return "-";
+    const cfg = getVersionByAppId(currentApp.value);
+    if (cfg) return cfg;
+    const meta = APP_LIST.find((a) => a.appName === currentApp.value);
+    return meta?.version ?? "-";
+});
 
 onMounted(centerCanvas);
 watch([currentApp, dependencies], centerCanvas);
@@ -81,6 +87,9 @@ watch([currentApp, dependencies], centerCanvas);
                     :options="appOptions"
                     placeholder="请选择应用"
                 />
+                <div v-if="activeConfigTable" class="ml-4 text-gray-500 text-sm">
+                    当前配置表：{{ activeConfigTable.name }}
+                </div>
             </div>
             <div class="flex items-center">
                 <span class="mr-4 font-bold text-gray-700">视图筛选:</span>
@@ -105,7 +114,7 @@ watch([currentApp, dependencies], centerCanvas);
             >
                 <div class="text-3xl mb-1">📦</div>
                 <div class="font-bold text-lg">{{ currentApp }}</div>
-                <div class="text-xs opacity-80 mt-1">v1.2.0</div>
+                <div class="text-xs opacity-80 mt-1">{{ currentAppVersion }}</div>
             </div>
 
             <!-- Orbiting Nodes -->
