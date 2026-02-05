@@ -223,9 +223,9 @@ export interface IBusinessOption {
 }
 
 export const BUSINESS_OPTIONS: IBusinessOption[] = [
-    { label: '运维服务', value: 'edge-gateway' },
-    { label: '基础服务', value: 'basic-service' },
-    { label: '运营服务', value: 'customer-service' },
+    { label: "运维服务", value: "edge-gateway" },
+    { label: "基础服务", value: "basic-service" },
+    { label: "运营服务", value: "customer-service" },
 ];
 
 export interface IAppOption {
@@ -234,9 +234,9 @@ export interface IAppOption {
 }
 
 export const APP_OPTIONS: IAppOption[] = [
-    { label: 'AI 知识库 (AppAi)', value: 'AppAi' },
-    { label: '商城应用 (AppMall)', value: 'AppMall' },
-    { label: '票务应用 (AppCommerce)', value: 'AppCommerce' },
+    { label: "AI 知识库 (AppAi)", value: "AppAi" },
+    { label: "商城应用 (AppMall)", value: "AppMall" },
+    { label: "票务应用 (AppCommerce)", value: "AppCommerce" },
 ];
 
 export type IMenuCategory = "project" | "tenant" | "app";
@@ -252,40 +252,52 @@ export interface IConfigVersion {
 
 export const CONFIG_VERSIONS: IConfigVersion[] = [
     {
-        id: 'cfg-4.2.1',
-        name: '配置表 4.2.1（生产）',
-        description: '生产主线配置表（用于线上环境切换）',
-        createdAt: '2026-01-05 10:00:00',
-        updatedAt: '2026-02-01 10:00:00',
+        id: "cfg-4.2.1",
+        name: "配置表 4.2.1",
+        description: "4.2.1产品主配置",
+        createdAt: "2026-01-05 10:00:00",
+        updatedAt: "2026-02-01 10:00:00",
         dependencies: [
-            { appId: 'AppAi', version: '4.3.4' },
-            { appId: 'AppMall', version: '4.4.0' },
-            { appId: 'AppCommerce', version: '4.2.4-dsh' },
-        ]
+            { appId: "AppAi", version: "4.3.4" },
+            { appId: "AppMall", version: "4.4.0" },
+            { appId: "AppCommerce", version: "4.2.4-dsh" },
+        ],
     },
     {
-        id: 'cfg-4.3.2',
-        name: '配置表 4.3.2（测试）',
-        description: '测试验证配置表（用于联调/回归）',
-        createdAt: '2026-01-10 15:20:00',
-        updatedAt: '2026-02-02 09:30:00',
+        id: "cfg-4.3.2",
+        name: "配置表 4.3.2",
+        description: "4.3.2产品主配置",
+        createdAt: "2026-01-10 15:20:00",
+        updatedAt: "2026-02-02 09:30:00",
         dependencies: [
-            { appId: 'AppAi', version: '4.2.4' },
-            { appId: 'AppMall', version: '4.3.0' },
-            { appId: 'AppCommerce', version: '4.2.0' },
-        ]
+            { appId: "AppAi", version: "4.2.4" },
+            { appId: "AppMall", version: "4.3.0" },
+            { appId: "AppCommerce", version: "4.2.0" },
+        ],
     },
     {
-        id: 'cfg-4.4.1',
-        name: '配置表 4.4.1（预发）',
-        description: '预发灰度配置表（用于版本验证）',
-        createdAt: '2026-01-20 09:00:00',
-        updatedAt: '2026-02-03 14:10:00',
+        id: "cfg-4.3.2",
+        name: "独墅湖配置-基于4.3.2",
+        description: "独墅湖定制配置表，大部分基于4.3.2，个别基于定制分支",
+        createdAt: "2026-01-10 15:20:00",
+        updatedAt: "2026-02-02 09:30:00",
         dependencies: [
-            { appId: 'AppAi', version: '4.4.0' },
-            { appId: 'AppMall', version: '4.3.4' },
-            { appId: 'AppCommerce', version: '4.3.4' },
-        ]
+            { appId: "AppAi", version: "4.2.4" },
+            { appId: "AppMall", version: "4.3.0" },
+            { appId: "AppCommerce", version: "4.2.0" },
+        ],
+    },
+    {
+        id: "cfg-4.4.1",
+        name: "配置表 4.4.1",
+        description: "预发灰度配置表（用于版本验证）",
+        createdAt: "2026-01-20 09:00:00",
+        updatedAt: "2026-02-03 14:10:00",
+        dependencies: [
+            { appId: "AppAi", version: "4.4.0" },
+            { appId: "AppMall", version: "4.3.4" },
+            { appId: "AppCommerce", version: "4.3.4" },
+        ],
     },
 ];
 
@@ -294,13 +306,13 @@ export const getMenuDataByEnvironment = (
     category: IMenuCategory = "project",
     businessId: string = "edge-gateway",
     appId: string = "AppAi",
-    configVersion: string = "cfg-4.2.1"
+    configVersion: string = "cfg-4.2.1",
 ): { treeData: IMenuTreeNode[] } => {
     const seed = getEnvIndex(env);
     let treeData: IMenuTreeNode[] = [];
-    
+
     // Simulate config version impact (just appending version string to titles for demo)
-    const versionSuffix = configVersion === 'v1.0' ? '' : ` (${configVersion})`;
+    const versionSuffix = configVersion === "v1.0" ? "" : ` (${configVersion})`;
 
     if (category === "project") {
         treeData = [
@@ -368,33 +380,73 @@ export const getMenuDataByEnvironment = (
         // App category
         // In a real scenario, we would filter resources based on appId.
         // For mock, we'll just modify the titles slightly or structure.
-        
-        if (appId === 'AppMall') {
-             treeData = [
-                { title: `商城首页${versionSuffix}`, key: 'mall-home', type: 'page', capability: { capabilityKey: 'mall.home' }, status: 'normal' },
-                { 
-                    title: `商品管理`, 
-                    key: 'mall-product', 
-                    type: 'menu', 
+
+        if (appId === "AppMall") {
+            treeData = [
+                {
+                    title: `商城首页${versionSuffix}`,
+                    key: "mall-home",
+                    type: "page",
+                    capability: { capabilityKey: "mall.home" },
+                    status: "normal",
+                },
+                {
+                    title: `商品管理`,
+                    key: "mall-product",
+                    type: "menu",
                     children: [
-                        { title: '商品列表', key: 'mall.product.list', type: 'page', capability: { capabilityKey: 'mall.product.list' }, status: 'normal' },
-                        { title: '分类管理', key: 'mall.category.list', type: 'page', capability: { capabilityKey: 'mall.category.list' }, status: 'normal' }
-                    ]
-                }
-             ];
-        } else if (appId === 'AppCommerce') {
-             treeData = [
-                { title: `工作台${versionSuffix}`, key: 'commerce-work', type: 'page', capability: { capabilityKey: 'commerce.work' }, status: 'normal' },
-                { 
-                    title: `订单中心`, 
-                    key: 'commerce-order', 
-                    type: 'menu', 
+                        {
+                            title: "商品列表",
+                            key: "mall.product.list",
+                            type: "page",
+                            capability: { capabilityKey: "mall.product.list" },
+                            status: "normal",
+                        },
+                        {
+                            title: "分类管理",
+                            key: "mall.category.list",
+                            type: "page",
+                            capability: { capabilityKey: "mall.category.list" },
+                            status: "normal",
+                        },
+                    ],
+                },
+            ];
+        } else if (appId === "AppCommerce") {
+            treeData = [
+                {
+                    title: `工作台${versionSuffix}`,
+                    key: "commerce-work",
+                    type: "page",
+                    capability: { capabilityKey: "commerce.work" },
+                    status: "normal",
+                },
+                {
+                    title: `订单中心`,
+                    key: "commerce-order",
+                    type: "menu",
                     children: [
-                        { title: '全部订单', key: 'commerce.order.list', type: 'page', capability: { capabilityKey: 'commerce.order.list' }, status: 'normal' },
-                        { title: '售后处理', key: 'commerce.order.refund', type: 'page', capability: { capabilityKey: 'commerce.order.refund' }, status: 'normal' }
-                    ]
-                }
-             ];
+                        {
+                            title: "全部订单",
+                            key: "commerce.order.list",
+                            type: "page",
+                            capability: {
+                                capabilityKey: "commerce.order.list",
+                            },
+                            status: "normal",
+                        },
+                        {
+                            title: "售后处理",
+                            key: "commerce.order.refund",
+                            type: "page",
+                            capability: {
+                                capabilityKey: "commerce.order.refund",
+                            },
+                            status: "normal",
+                        },
+                    ],
+                },
+            ];
         } else {
             // Default AppAi
             treeData = cloneJson(buildMenuTreeFromResources(resources));
@@ -406,8 +458,10 @@ export const getMenuDataByEnvironment = (
             const firstBizChild = biz?.children?.[0];
             const secondBizChild = biz?.children?.[1];
 
-            if (firstBizChild && seed % 3 === 1) firstBizChild.status = "warning";
-            if (secondBizChild && seed % 3 === 2) secondBizChild.status = "broken";
+            if (firstBizChild && seed % 3 === 1)
+                firstBizChild.status = "warning";
+            if (secondBizChild && seed % 3 === 2)
+                secondBizChild.status = "broken";
         }
     }
 
